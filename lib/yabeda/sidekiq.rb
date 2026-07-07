@@ -48,6 +48,21 @@ module Yabeda
                                 unit: :seconds, per: :job,
                                 tags: %i[queue worker],
                                 buckets: LONG_RUNNING_JOB_RUNTIME_BUCKETS
+
+        # NOTE: The event is published by ServerMiddleware. Allocation stats are read
+        # from the Event: +allocations+ is provided by ActiveSupport 6+ itself,
+        # +malloc_increase_bytes+ appears when the Event class is patched by umbrellio-utils.
+        if defined?(::ActiveSupport::Notifications)
+          ::ActiveSupport::Notifications.subscribe("perform.sidekiq_job") do |event|
+            labels = { queue: event.payload[:queue], worker: event.payload[:worker] }
+
+            Yabeda.sidekiq_allocations_total.increment(labels, by: event.allocations)
+
+            if event.respond_to?(:malloc_increase_bytes) && event.malloc_increase_bytes.positive?
+              Yabeda.sidekiq_allocation_bytes.increment(labels, by: event.malloc_increase_bytes)
+            end
+          end
+        end
       end
 
       # Metrics not specific for current Sidekiq process, but representing state of the whole Sidekiq installation (queues, processes, etc)
@@ -103,21 +118,6 @@ module Yabeda
           end
         else
           sidekiq_jobs_retry_count.set({}, stats.retry_size)
-        end
-      end
-    end
-
-    # NOTE: The event is published by ServerMiddleware. Allocation stats are read
-    # from the Event: +allocations+ is provided by ActiveSupport 6+ itself,
-    # +malloc_increase_bytes+ appears when the Event class is patched by umbrellio-utils.
-    if defined?(::ActiveSupport::Notifications) && config.declare_process_metrics
-      ::ActiveSupport::Notifications.subscribe("perform.sidekiq_job") do |event|
-        labels = { queue: event.payload[:queue], worker: event.payload[:worker] }
-
-        Yabeda.sidekiq_allocations_total.increment(labels, by: event.allocations)
-
-        if event.respond_to?(:malloc_increase_bytes) && event.malloc_increase_bytes.positive?
-          Yabeda.sidekiq_allocation_bytes.increment(labels, by: event.malloc_increase_bytes)
         end
       end
     end
