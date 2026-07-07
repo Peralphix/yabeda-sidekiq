@@ -47,6 +47,10 @@ Metrics representing state of current Sidekiq worker process and stats of execut
  - Time of job run: `sidekiq_job_runtime` (seconds per job execution, segmented by queue and class name)
  - Time of the job latency `sidekiq_job_latency` (the difference in seconds since the enqueuing until running job)
  - Maximum runtime of currently executing jobs: `sidekiq_running_job_runtime` (useful for detection of hung jobs, segmented by queue and class name)
+ - Number of object allocations during job execution: `sidekiq_allocations_total` (segmented by queue and class name)
+ - Bytes allocated during job execution: `sidekiq_allocation_bytes` (segmented by queue and class name; requires the `ActiveSupport::Notifications::Event` patch from [umbrellio-utils](https://github.com/umbrellio/utils))
+
+Job executions are also wrapped into the `perform.sidekiq_job` ActiveSupport notification (when ActiveSupport is available), so you can subscribe to it for custom metrics or logging.
 
 ### Global cluster-wide metrics
 
