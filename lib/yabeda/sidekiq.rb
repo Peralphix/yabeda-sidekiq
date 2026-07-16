@@ -34,8 +34,10 @@ module Yabeda
         counter   :jobs_executed_total,  tags: %i[queue worker], comment: "A counter of the total number of jobs sidekiq executed."
         counter   :jobs_success_total,   tags: %i[queue worker], comment: "A counter of the total number of jobs successfully processed by sidekiq."
         counter   :jobs_failed_total,    tags: failed_total_tags, comment: "A counter of the total number of jobs failed in sidekiq."
-        counter   :allocations_total,    tags: %i[queue worker], comment: "A counter of the total number of object allocations during job execution."
-        counter   :allocation_bytes,     tags: %i[queue worker], comment: "A counter of the total bytes allocated during job execution."
+        counter   :allocations_total,    tags: %i[queue worker], comment: "Object allocations during job execution (process-global, approximate)."
+        # NOTE: off-heap malloc increase since the last GC, not total bytes allocated;
+        # a lower bound that is unreliable across GC (see the umbrellio-utils patch).
+        counter   :malloc_increase_bytes,   tags: %i[queue worker], comment: "A counter of malloc'd (off-heap) bytes since the last GC during job execution."
 
         gauge     :running_job_runtime,  tags: %i[queue worker], aggregation: :max, unit: :seconds,
                                          comment: "How long currently running jobs are running (useful for detection of hung jobs)"
@@ -59,7 +61,7 @@ module Yabeda
             Yabeda.sidekiq_allocations_total.increment(labels, by: event.allocations)
 
             if event.respond_to?(:malloc_increase_bytes) && event.malloc_increase_bytes.positive?
-              Yabeda.sidekiq_allocation_bytes.increment(labels, by: event.malloc_increase_bytes)
+              Yabeda.sidekiq_malloc_increase_bytes.increment(labels, by: event.malloc_increase_bytes)
             end
           end
         end

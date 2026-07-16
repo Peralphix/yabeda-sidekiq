@@ -34,9 +34,9 @@ RSpec.describe Yabeda::Sidekiq::ServerMiddleware, sidekiq: :inline do
         increment_yabeda_counter(Yabeda.sidekiq.allocations_total).with_tags(labels)
     end
 
-    it "does not increment allocation_bytes without the Event patch" do
+    it "does not increment malloc_increase_bytes without the Event patch" do
       expect { SamplePlainJob.perform_async }.not_to \
-        increment_yabeda_counter(Yabeda.sidekiq.allocation_bytes)
+        increment_yabeda_counter(Yabeda.sidekiq.malloc_increase_bytes)
     end
 
     context "when the Event is patched with malloc_increase_bytes" do
@@ -48,9 +48,9 @@ RSpec.describe Yabeda::Sidekiq::ServerMiddleware, sidekiq: :inline do
         # rubocop:enable RSpec/AnyInstance
       end
 
-      it "increments allocation_bytes" do
+      it "increments malloc_increase_bytes" do
         expect { SamplePlainJob.perform_async }.to \
-          increment_yabeda_counter(Yabeda.sidekiq.allocation_bytes).with(labels => 2048)
+          increment_yabeda_counter(Yabeda.sidekiq.malloc_increase_bytes).with(labels => 2048)
       end
     end
   end
