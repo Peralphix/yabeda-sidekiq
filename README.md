@@ -50,11 +50,7 @@ Metrics representing state of current Sidekiq worker process and stats of execut
  - Number of object allocations during job execution: `sidekiq_allocations_total` (segmented by queue and class name)
  - Malloc increase since last GC during job execution: `sidekiq_malloc_increase_bytes` (segmented by queue and class name; requires the `ActiveSupport::Notifications::Event` patch from [umbrellio-utils](https://github.com/umbrellio/utils))
 
-> Both allocation metrics are process-global, so with concurrency > 1
-> they also count concurrent jobs — treat them as
-> approximate. `sidekiq_malloc_increase_bytes` is an off-heap lower bound that resets
-> on GC, not total bytes allocated; use `sidekiq_allocations_total` for memory
-> comparisons.
+> Both allocation metrics are process-global, so with concurrency > 1 they also count concurrent jobs — treat them as approximate. `sidekiq_malloc_increase_bytes` is an off-heap lower bound that resets on GC, not total bytes allocated; use `sidekiq_allocations_total` for memory comparisons.
 
 Job executions are also wrapped into the `perform.sidekiq_job` ActiveSupport notification (when ActiveSupport is available), so you can subscribe to it for custom metrics or logging.
 

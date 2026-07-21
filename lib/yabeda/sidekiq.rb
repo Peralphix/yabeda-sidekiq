@@ -37,7 +37,7 @@ module Yabeda
         counter   :allocations_total,    tags: %i[queue worker], comment: "Object allocations during job execution (process-global, approximate)."
         # NOTE: off-heap malloc increase since the last GC, not total bytes allocated;
         # a lower bound that is unreliable across GC (see the umbrellio-utils patch).
-        counter   :malloc_increase_bytes,   tags: %i[queue worker], comment: "A counter of malloc'd (off-heap) bytes since the last GC during job execution."
+        counter   :malloc_increase_bytes, tags: %i[queue worker], comment: "A counter of malloc'd (off-heap) bytes since the last GC during job execution."
 
         gauge     :running_job_runtime,  tags: %i[queue worker], aggregation: :max, unit: :seconds,
                                          comment: "How long currently running jobs are running (useful for detection of hung jobs)"
@@ -56,6 +56,8 @@ module Yabeda
         # +malloc_increase_bytes+ appears when the Event class is patched by umbrellio-utils.
         if defined?(::ActiveSupport::Notifications)
           ::ActiveSupport::Notifications.subscribe("perform.sidekiq_job") do |event|
+            next unless event.respond_to?(:allocations)
+
             labels = { queue: event.payload[:queue], worker: event.payload[:worker] }
 
             Yabeda.sidekiq_allocations_total.increment(labels, by: event.allocations)
